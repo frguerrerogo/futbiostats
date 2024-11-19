@@ -1,37 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:futbiostats/domain/entities/athlete.dart';
-import 'package:futbiostats/presentation/providers/athlete_provider.dart';
-import 'package:futbiostats/presentation/widgets/add_athlete_dialog.dart';
+import 'package:futbiostats/presentation/screens/create_update_athlete_screen.dart';
+import 'package:futbiostats/presentation/screens/information_athlete_screen%20.dart';
 import 'package:futbiostats/presentation/widgets/icon_button_custom.dart';
+import 'package:go_router/go_router.dart';
 
-class AthleteItem extends ConsumerStatefulWidget {
+class AthleteItem extends StatelessWidget {
+  final Athlete athlete;
   const AthleteItem({
     super.key,
     required this.athlete,
   });
 
-  final Athlete athlete;
-
-  @override
-  AthleteItemState createState() => AthleteItemState();
-}
-
-class AthleteItemState extends ConsumerState<AthleteItem> with AutomaticKeepAliveClientMixin {
-  bool _isExpanded = false;
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     ColorScheme colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _isExpanded = !_isExpanded;
-        });
+        GoRouter.of(context).goNamed(InformationAthleteScreen.name, extra: athlete);
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.linear,
+      child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -52,75 +40,45 @@ class AthleteItemState extends ConsumerState<AthleteItem> with AutomaticKeepAliv
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      AnimatedSize(
-                        duration: const Duration(milliseconds: 500),
-                        child: Text(
-                          widget.athlete.name,
-                          maxLines: _isExpanded ? 2 : 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium!
-                              .copyWith(fontWeight: FontWeight.bold, color: colorScheme.onPrimaryContainer),
-                        ),
+                      Text(
+                        athlete.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium!
+                            .copyWith(fontWeight: FontWeight.bold, color: colorScheme.onPrimaryContainer),
                       ),
-                      AnimatedSize(
-                        duration: const Duration(milliseconds: 500),
-                        child: _isExpanded
-                            ? Text(
-                                widget.athlete.name,
-                                maxLines: 4,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.justify,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium!
-                                    .copyWith(fontWeight: FontWeight.normal, color: colorScheme.onPrimaryContainer),
-                              )
-                            : const SizedBox(),
+                      Text(
+                        athlete.nationality,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.justify,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium!
+                            .copyWith(fontWeight: FontWeight.normal, color: colorScheme.onPrimaryContainer),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            if (_isExpanded) const SizedBox(height: 5),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 500),
-              child: _isExpanded
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButtonCustom(
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return CreateAndUpdateAthlete(
-                                    athlete: widget.athlete,
-                                  );
-                                },
-                              );
-                            },
-                            icon: Icons.edit,
-                            background: true),
-                        const SizedBox(width: 10),
-                        IconButtonCustom(
-                            onTap: () {
-                              ref.read(athleteProvider.notifier).deleteAthlete(widget.athlete.isarId!);
-                            },
-                            icon: Icons.delete_forever,
-                            background: true),
-                      ],
-                    )
-                  : const SizedBox(),
+            const SizedBox(height: 5),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButtonCustom(
+                    onTap: () {
+                      GoRouter.of(context).goNamed(CreateUpdateAthleteScreen.name, extra: athlete);
+                    },
+                    icon: Icons.edit,
+                    background: false),
+              ],
             ),
           ],
         ),
       ),
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
 }

@@ -25,7 +25,7 @@ const AthleteSchema = CollectionSchema(
     r'height': PropertySchema(
       id: 1,
       name: r'height',
-      type: IsarType.long,
+      type: IsarType.double,
     ),
     r'image': PropertySchema(
       id: 2,
@@ -52,39 +52,46 @@ const AthleteSchema = CollectionSchema(
       name: r'nationality',
       type: IsarType.string,
     ),
-    r'skilledFoot': PropertySchema(
+    r'positions': PropertySchema(
       id: 7,
+      name: r'positions',
+      type: IsarType.stringList,
+    ),
+    r'skilledFoot': PropertySchema(
+      id: 8,
       name: r'skilledFoot',
       type: IsarType.byte,
       enumMap: _AthleteskilledFootEnumValueMap,
     ),
     r'skills': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'skills',
-      type: IsarType.stringList,
+      type: IsarType.objectList,
+      target: r'Skill',
     ),
     r'statistics': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'statistics',
-      type: IsarType.stringList,
+      type: IsarType.object,
+      target: r'Statistics',
     ),
     r'tournamentsPlayed': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'tournamentsPlayed',
       type: IsarType.string,
     ),
     r'trajectory': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'trajectory',
       type: IsarType.stringList,
     ),
     r'value': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'value',
       type: IsarType.long,
     ),
     r'weight': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'weight',
       type: IsarType.long,
     )
@@ -96,7 +103,7 @@ const AthleteSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {},
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'Skill': SkillSchema, r'Statistics': StatisticsSchema},
   getId: _athleteGetId,
   getLinks: _athleteGetLinks,
   attach: _athleteAttach,
@@ -120,20 +127,24 @@ int _athleteEstimateSize(
   }
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.nationality.length * 3;
+  bytesCount += 3 + object.positions.length * 3;
+  {
+    for (var i = 0; i < object.positions.length; i++) {
+      final value = object.positions[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.skills.length * 3;
   {
+    final offsets = allOffsets[Skill]!;
     for (var i = 0; i < object.skills.length; i++) {
       final value = object.skills[i];
-      bytesCount += value.length * 3;
+      bytesCount += SkillSchema.estimateSize(value, offsets, allOffsets);
     }
   }
-  bytesCount += 3 + object.statistics.length * 3;
-  {
-    for (var i = 0; i < object.statistics.length; i++) {
-      final value = object.statistics[i];
-      bytesCount += value.length * 3;
-    }
-  }
+  bytesCount += 3 +
+      StatisticsSchema.estimateSize(
+          object.statistics, allOffsets[Statistics]!, allOffsets);
   bytesCount += 3 + object.tournamentsPlayed.length * 3;
   bytesCount += 3 + object.trajectory.length * 3;
   {
@@ -152,19 +163,30 @@ void _athleteSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDateTime(offsets[0], object.birthdate);
-  writer.writeLong(offsets[1], object.height);
+  writer.writeDouble(offsets[1], object.height);
   writer.writeString(offsets[2], object.image);
   writer.writeString(offsets[3], object.informaScout);
   writer.writeStringList(offsets[4], object.injuryRecord);
   writer.writeString(offsets[5], object.name);
   writer.writeString(offsets[6], object.nationality);
-  writer.writeByte(offsets[7], object.skilledFoot.index);
-  writer.writeStringList(offsets[8], object.skills);
-  writer.writeStringList(offsets[9], object.statistics);
-  writer.writeString(offsets[10], object.tournamentsPlayed);
-  writer.writeStringList(offsets[11], object.trajectory);
-  writer.writeLong(offsets[12], object.value);
-  writer.writeLong(offsets[13], object.weight);
+  writer.writeStringList(offsets[7], object.positions);
+  writer.writeByte(offsets[8], object.skilledFoot.index);
+  writer.writeObjectList<Skill>(
+    offsets[9],
+    allOffsets,
+    SkillSchema.serialize,
+    object.skills,
+  );
+  writer.writeObject<Statistics>(
+    offsets[10],
+    allOffsets,
+    StatisticsSchema.serialize,
+    object.statistics,
+  );
+  writer.writeString(offsets[11], object.tournamentsPlayed);
+  writer.writeStringList(offsets[12], object.trajectory);
+  writer.writeLong(offsets[13], object.value);
+  writer.writeLong(offsets[14], object.weight);
 }
 
 Athlete _athleteDeserialize(
@@ -175,21 +197,33 @@ Athlete _athleteDeserialize(
 ) {
   final object = Athlete(
     birthdate: reader.readDateTime(offsets[0]),
-    height: reader.readLong(offsets[1]),
+    height: reader.readDouble(offsets[1]),
     image: reader.readString(offsets[2]),
     informaScout: reader.readString(offsets[3]),
     injuryRecord: reader.readStringList(offsets[4]) ?? [],
     name: reader.readString(offsets[5]),
     nationality: reader.readString(offsets[6]),
+    positions: reader.readStringList(offsets[7]) ?? [],
     skilledFoot:
-        _AthleteskilledFootValueEnumMap[reader.readByteOrNull(offsets[7])] ??
+        _AthleteskilledFootValueEnumMap[reader.readByteOrNull(offsets[8])] ??
             SkilledFoot.right,
-    skills: reader.readStringList(offsets[8]) ?? [],
-    statistics: reader.readStringList(offsets[9]) ?? [],
-    tournamentsPlayed: reader.readString(offsets[10]),
-    trajectory: reader.readStringList(offsets[11]) ?? [],
-    value: reader.readLong(offsets[12]),
-    weight: reader.readLong(offsets[13]),
+    skills: reader.readObjectList<Skill>(
+          offsets[9],
+          SkillSchema.deserialize,
+          allOffsets,
+          Skill(),
+        ) ??
+        [],
+    statistics: reader.readObjectOrNull<Statistics>(
+          offsets[10],
+          StatisticsSchema.deserialize,
+          allOffsets,
+        ) ??
+        Statistics(),
+    tournamentsPlayed: reader.readString(offsets[11]),
+    trajectory: reader.readStringList(offsets[12]) ?? [],
+    value: reader.readLong(offsets[13]),
+    weight: reader.readLong(offsets[14]),
   );
   object.isarId = id;
   return object;
@@ -205,7 +239,7 @@ P _athleteDeserializeProp<P>(
     case 0:
       return (reader.readDateTime(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 2:
       return (reader.readString(offset)) as P;
     case 3:
@@ -217,19 +251,32 @@ P _athleteDeserializeProp<P>(
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 8:
       return (_AthleteskilledFootValueEnumMap[reader.readByteOrNull(offset)] ??
           SkilledFoot.right) as P;
-    case 8:
-      return (reader.readStringList(offset) ?? []) as P;
     case 9:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readObjectList<Skill>(
+            offset,
+            SkillSchema.deserialize,
+            allOffsets,
+            Skill(),
+          ) ??
+          []) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readObjectOrNull<Statistics>(
+            offset,
+            StatisticsSchema.deserialize,
+            allOffsets,
+          ) ??
+          Statistics()) as P;
     case 11:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 13:
+      return (reader.readLong(offset)) as P;
+    case 14:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -391,46 +438,54 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition> heightEqualTo(
-      int value) {
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'height',
         value: value,
+        epsilon: epsilon,
       ));
     });
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition> heightGreaterThan(
-    int value, {
+    double value, {
     bool include = false,
+    double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
         property: r'height',
         value: value,
+        epsilon: epsilon,
       ));
     });
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition> heightLessThan(
-    int value, {
+    double value, {
     bool include = false,
+    double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
         property: r'height',
         value: value,
+        epsilon: epsilon,
       ));
     });
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition> heightBetween(
-    int lower,
-    int upper, {
+    double lower,
+    double upper, {
     bool includeLower = true,
     bool includeUpper = true,
+    double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
@@ -439,6 +494,7 @@ extension AthleteQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -1258,6 +1314,226 @@ extension AthleteQueryFilter
     });
   }
 
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> positionsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'positions',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      positionsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'positions',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      positionsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'positions',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> positionsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'positions',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      positionsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'positions',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      positionsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'positions',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      positionsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'positions',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> positionsElementMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'positions',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      positionsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'positions',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      positionsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'positions',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> positionsLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'positions',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> positionsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'positions',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> positionsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'positions',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> positionsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'positions',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      positionsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'positions',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> positionsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'positions',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skilledFootEqualTo(
       SkilledFoot value) {
     return QueryBuilder.apply(this, (query) {
@@ -1307,138 +1583,6 @@ extension AthleteQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skillsElementEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'skills',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      skillsElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'skills',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skillsElementLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'skills',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skillsElementBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'skills',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skillsElementStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'skills',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skillsElementEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'skills',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skillsElementContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'skills',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skillsElementMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'skills',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skillsElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'skills',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      skillsElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'skills',
-        value: '',
       ));
     });
   }
@@ -1519,228 +1663,6 @@ extension AthleteQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.listLength(
         r'skills',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'statistics',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'statistics',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'statistics',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'statistics',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'statistics',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'statistics',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'statistics',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'statistics',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'statistics',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'statistics',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> statisticsLengthEqualTo(
-      int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'statistics',
-        length,
-        true,
-        length,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> statisticsIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'statistics',
-        0,
-        true,
-        0,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> statisticsIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'statistics',
-        0,
-        false,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'statistics',
-        0,
-        true,
-        length,
-        include,
-      );
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      statisticsLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'statistics',
-        length,
-        include,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> statisticsLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'statistics',
         lower,
         includeLower,
         upper,
@@ -2215,7 +2137,21 @@ extension AthleteQueryFilter
 }
 
 extension AthleteQueryObject
-    on QueryBuilder<Athlete, Athlete, QFilterCondition> {}
+    on QueryBuilder<Athlete, Athlete, QFilterCondition> {
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> skillsElement(
+      FilterQuery<Skill> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'skills');
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> statistics(
+      FilterQuery<Statistics> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'statistics');
+    });
+  }
+}
 
 extension AthleteQueryLinks
     on QueryBuilder<Athlete, Athlete, QFilterCondition> {}
@@ -2525,21 +2461,15 @@ extension AthleteQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Athlete, Athlete, QDistinct> distinctByPositions() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'positions');
+    });
+  }
+
   QueryBuilder<Athlete, Athlete, QDistinct> distinctBySkilledFoot() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'skilledFoot');
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QDistinct> distinctBySkills() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'skills');
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QDistinct> distinctByStatistics() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'statistics');
     });
   }
 
@@ -2584,7 +2514,7 @@ extension AthleteQueryProperty
     });
   }
 
-  QueryBuilder<Athlete, int, QQueryOperations> heightProperty() {
+  QueryBuilder<Athlete, double, QQueryOperations> heightProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'height');
     });
@@ -2620,19 +2550,25 @@ extension AthleteQueryProperty
     });
   }
 
+  QueryBuilder<Athlete, List<String>, QQueryOperations> positionsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'positions');
+    });
+  }
+
   QueryBuilder<Athlete, SkilledFoot, QQueryOperations> skilledFootProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'skilledFoot');
     });
   }
 
-  QueryBuilder<Athlete, List<String>, QQueryOperations> skillsProperty() {
+  QueryBuilder<Athlete, List<Skill>, QQueryOperations> skillsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'skills');
     });
   }
 
-  QueryBuilder<Athlete, List<String>, QQueryOperations> statisticsProperty() {
+  QueryBuilder<Athlete, Statistics, QQueryOperations> statisticsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'statistics');
     });
@@ -2662,3 +2598,1294 @@ extension AthleteQueryProperty
     });
   }
 }
+
+// **************************************************************************
+// IsarEmbeddedGenerator
+// **************************************************************************
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const SkillSchema = Schema(
+  name: r'Skill',
+  id: 4092444674663721600,
+  properties: {
+    r'name': PropertySchema(
+      id: 0,
+      name: r'name',
+      type: IsarType.string,
+    ),
+    r'value': PropertySchema(
+      id: 1,
+      name: r'value',
+      type: IsarType.long,
+    )
+  },
+  estimateSize: _skillEstimateSize,
+  serialize: _skillSerialize,
+  deserialize: _skillDeserialize,
+  deserializeProp: _skillDeserializeProp,
+);
+
+int _skillEstimateSize(
+  Skill object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.name.length * 3;
+  return bytesCount;
+}
+
+void _skillSerialize(
+  Skill object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.name);
+  writer.writeLong(offsets[1], object.value);
+}
+
+Skill _skillDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = Skill();
+  object.name = reader.readString(offsets[0]);
+  object.value = reader.readLong(offsets[1]);
+  return object;
+}
+
+P _skillDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readString(offset)) as P;
+    case 1:
+      return (reader.readLong(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension SkillQueryFilter on QueryBuilder<Skill, Skill, QFilterCondition> {
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'name',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameContains(String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameMatches(String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'name',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> nameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> valueEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'value',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> valueGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'value',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> valueLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'value',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Skill, Skill, QAfterFilterCondition> valueBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'value',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+}
+
+extension SkillQueryObject on QueryBuilder<Skill, Skill, QFilterCondition> {}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const StatisticsSchema = Schema(
+  name: r'Statistics',
+  id: -3012562703602652036,
+  properties: {
+    r'assists': PropertySchema(
+      id: 0,
+      name: r'assists',
+      type: IsarType.long,
+    ),
+    r'dribbleSuccessPercentage': PropertySchema(
+      id: 1,
+      name: r'dribbleSuccessPercentage',
+      type: IsarType.long,
+    ),
+    r'duels': PropertySchema(
+      id: 2,
+      name: r'duels',
+      type: IsarType.long,
+    ),
+    r'duelsWonPercentage': PropertySchema(
+      id: 3,
+      name: r'duelsWonPercentage',
+      type: IsarType.long,
+    ),
+    r'foulsCommitted': PropertySchema(
+      id: 4,
+      name: r'foulsCommitted',
+      type: IsarType.long,
+    ),
+    r'foulsReceived': PropertySchema(
+      id: 5,
+      name: r'foulsReceived',
+      type: IsarType.long,
+    ),
+    r'goals': PropertySchema(
+      id: 6,
+      name: r'goals',
+      type: IsarType.long,
+    ),
+    r'matchesPlayed': PropertySchema(
+      id: 7,
+      name: r'matchesPlayed',
+      type: IsarType.long,
+    ),
+    r'minutesPerGoalAssist': PropertySchema(
+      id: 8,
+      name: r'minutesPerGoalAssist',
+      type: IsarType.double,
+    ),
+    r'minutesPlayed': PropertySchema(
+      id: 9,
+      name: r'minutesPlayed',
+      type: IsarType.long,
+    ),
+    r'passAccuracy': PropertySchema(
+      id: 10,
+      name: r'passAccuracy',
+      type: IsarType.long,
+    ),
+    r'passes': PropertySchema(
+      id: 11,
+      name: r'passes',
+      type: IsarType.long,
+    ),
+    r'redCards': PropertySchema(
+      id: 12,
+      name: r'redCards',
+      type: IsarType.long,
+    ),
+    r'shotsOnTarget': PropertySchema(
+      id: 13,
+      name: r'shotsOnTarget',
+      type: IsarType.long,
+    ),
+    r'yellowCards': PropertySchema(
+      id: 14,
+      name: r'yellowCards',
+      type: IsarType.long,
+    )
+  },
+  estimateSize: _statisticsEstimateSize,
+  serialize: _statisticsSerialize,
+  deserialize: _statisticsDeserialize,
+  deserializeProp: _statisticsDeserializeProp,
+);
+
+int _statisticsEstimateSize(
+  Statistics object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  return bytesCount;
+}
+
+void _statisticsSerialize(
+  Statistics object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeLong(offsets[0], object.assists);
+  writer.writeLong(offsets[1], object.dribbleSuccessPercentage);
+  writer.writeLong(offsets[2], object.duels);
+  writer.writeLong(offsets[3], object.duelsWonPercentage);
+  writer.writeLong(offsets[4], object.foulsCommitted);
+  writer.writeLong(offsets[5], object.foulsReceived);
+  writer.writeLong(offsets[6], object.goals);
+  writer.writeLong(offsets[7], object.matchesPlayed);
+  writer.writeDouble(offsets[8], object.minutesPerGoalAssist);
+  writer.writeLong(offsets[9], object.minutesPlayed);
+  writer.writeLong(offsets[10], object.passAccuracy);
+  writer.writeLong(offsets[11], object.passes);
+  writer.writeLong(offsets[12], object.redCards);
+  writer.writeLong(offsets[13], object.shotsOnTarget);
+  writer.writeLong(offsets[14], object.yellowCards);
+}
+
+Statistics _statisticsDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = Statistics();
+  object.assists = reader.readLong(offsets[0]);
+  object.dribbleSuccessPercentage = reader.readLong(offsets[1]);
+  object.duels = reader.readLong(offsets[2]);
+  object.duelsWonPercentage = reader.readLong(offsets[3]);
+  object.foulsCommitted = reader.readLong(offsets[4]);
+  object.foulsReceived = reader.readLong(offsets[5]);
+  object.goals = reader.readLong(offsets[6]);
+  object.matchesPlayed = reader.readLong(offsets[7]);
+  object.minutesPerGoalAssist = reader.readDouble(offsets[8]);
+  object.minutesPlayed = reader.readLong(offsets[9]);
+  object.passAccuracy = reader.readLong(offsets[10]);
+  object.passes = reader.readLong(offsets[11]);
+  object.redCards = reader.readLong(offsets[12]);
+  object.shotsOnTarget = reader.readLong(offsets[13]);
+  object.yellowCards = reader.readLong(offsets[14]);
+  return object;
+}
+
+P _statisticsDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readLong(offset)) as P;
+    case 1:
+      return (reader.readLong(offset)) as P;
+    case 2:
+      return (reader.readLong(offset)) as P;
+    case 3:
+      return (reader.readLong(offset)) as P;
+    case 4:
+      return (reader.readLong(offset)) as P;
+    case 5:
+      return (reader.readLong(offset)) as P;
+    case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
+      return (reader.readLong(offset)) as P;
+    case 8:
+      return (reader.readDouble(offset)) as P;
+    case 9:
+      return (reader.readLong(offset)) as P;
+    case 10:
+      return (reader.readLong(offset)) as P;
+    case 11:
+      return (reader.readLong(offset)) as P;
+    case 12:
+      return (reader.readLong(offset)) as P;
+    case 13:
+      return (reader.readLong(offset)) as P;
+    case 14:
+      return (reader.readLong(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension StatisticsQueryFilter
+    on QueryBuilder<Statistics, Statistics, QFilterCondition> {
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> assistsEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'assists',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      assistsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'assists',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> assistsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'assists',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> assistsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'assists',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      dribbleSuccessPercentageEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'dribbleSuccessPercentage',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      dribbleSuccessPercentageGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'dribbleSuccessPercentage',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      dribbleSuccessPercentageLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'dribbleSuccessPercentage',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      dribbleSuccessPercentageBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'dribbleSuccessPercentage',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> duelsEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'duels',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> duelsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'duels',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> duelsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'duels',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> duelsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'duels',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      duelsWonPercentageEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'duelsWonPercentage',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      duelsWonPercentageGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'duelsWonPercentage',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      duelsWonPercentageLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'duelsWonPercentage',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      duelsWonPercentageBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'duelsWonPercentage',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      foulsCommittedEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'foulsCommitted',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      foulsCommittedGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'foulsCommitted',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      foulsCommittedLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'foulsCommitted',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      foulsCommittedBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'foulsCommitted',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      foulsReceivedEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'foulsReceived',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      foulsReceivedGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'foulsReceived',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      foulsReceivedLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'foulsReceived',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      foulsReceivedBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'foulsReceived',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> goalsEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'goals',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> goalsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'goals',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> goalsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'goals',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> goalsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'goals',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      matchesPlayedEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'matchesPlayed',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      matchesPlayedGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'matchesPlayed',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      matchesPlayedLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'matchesPlayed',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      matchesPlayedBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'matchesPlayed',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      minutesPerGoalAssistEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'minutesPerGoalAssist',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      minutesPerGoalAssistGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'minutesPerGoalAssist',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      minutesPerGoalAssistLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'minutesPerGoalAssist',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      minutesPerGoalAssistBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'minutesPerGoalAssist',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      minutesPlayedEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'minutesPlayed',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      minutesPlayedGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'minutesPlayed',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      minutesPlayedLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'minutesPlayed',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      minutesPlayedBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'minutesPlayed',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      passAccuracyEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'passAccuracy',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      passAccuracyGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'passAccuracy',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      passAccuracyLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'passAccuracy',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      passAccuracyBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'passAccuracy',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> passesEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'passes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> passesGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'passes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> passesLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'passes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> passesBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'passes',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> redCardsEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'redCards',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      redCardsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'redCards',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> redCardsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'redCards',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition> redCardsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'redCards',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      shotsOnTargetEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'shotsOnTarget',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      shotsOnTargetGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'shotsOnTarget',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      shotsOnTargetLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'shotsOnTarget',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      shotsOnTargetBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'shotsOnTarget',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      yellowCardsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'yellowCards',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      yellowCardsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'yellowCards',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      yellowCardsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'yellowCards',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Statistics, Statistics, QAfterFilterCondition>
+      yellowCardsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'yellowCards',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+}
+
+extension StatisticsQueryObject
+    on QueryBuilder<Statistics, Statistics, QFilterCondition> {}

@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:futbiostats/domain/entities/athlete.dart';
 import 'package:futbiostats/presentation/providers/athlete_provider.dart';
-import 'package:futbiostats/presentation/widgets/add_athlete_dialog.dart';
+import 'package:futbiostats/presentation/screens/create_update_athlete_screen.dart';
 import 'package:futbiostats/presentation/widgets/drawer_custom.dart';
 import 'package:futbiostats/presentation/widgets/icon_button_custom.dart';
 import 'package:futbiostats/presentation/widgets/athlete_item.dart';
+import 'package:go_router/go_router.dart';
 
 class AthletesMainScreen extends StatelessWidget {
   static const name = 'athletes-main-screen';
@@ -46,12 +47,7 @@ class AthletesMainScreen extends StatelessWidget {
       actions: [
         IconButtonCustom(
             onTap: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return CreateAndUpdateAthlete();
-                },
-              );
+              GoRouter.of(context).goNamed(CreateUpdateAthleteScreen.name);
             },
             icon: Icons.add,
             background: true),
