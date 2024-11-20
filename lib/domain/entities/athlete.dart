@@ -26,7 +26,7 @@ class Athlete {
   List<String> injuryRecord = []; // Lista inicializada
   late Statistics statistics; // Lista inicializada
   late String informaScout;
-  late String tournamentsPlayed;
+  List<String> tournamentsPlayed = [];
 
   Athlete({
     required this.name,

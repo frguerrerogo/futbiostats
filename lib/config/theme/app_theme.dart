@@ -43,7 +43,7 @@ class AppTheme {
   final bool isDarkmode;
 
   AppTheme({
-    this.selectedColor = Colors.blue,
+    this.selectedColor = Colors.orange,
     this.isDarkmode = false,
   });
 

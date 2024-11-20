@@ -54,7 +54,7 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
     dribbleSuccessPercentage: 0,
   );
   final TextEditingController _informaScoutController = TextEditingController();
-  final TextEditingController _tournamentsPlayedController = TextEditingController();
+  List<String> _tournamentsPlayed = [];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -76,7 +76,7 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
       _injuryRecord = athlete!.injuryRecord;
       _statistics = athlete!.statistics;
       _informaScoutController.text = athlete!.informaScout;
-      _tournamentsPlayedController.text = athlete!.tournamentsPlayed;
+      _tournamentsPlayed = athlete!.tournamentsPlayed;
     }
 
     return Scaffold(
@@ -156,10 +156,10 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
             //value;
             CustomTextField(
               controller: _valueController,
-              hintText: 'Valor (\$)',
+              hintText: 'Valor (€)',
               labelText: 'Valor',
             ),
-            // List<String> skills;
+            // skills;
             SkillsRating(
               skills: _skills,
             ),
@@ -182,7 +182,6 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
               onStatisticsChanged: (statistics) => _statistics = statistics,
               statistics: _statistics,
             ),
-            StatisticsWidget(stats: _statistics),
             //informaScout;
             CustomTextField(
               controller: _informaScoutController,
@@ -191,11 +190,13 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
               maxLines: 3,
             ),
             //tournamentsPlayed;
-            CustomTextField(
-              controller: _tournamentsPlayedController,
-              hintText: 'Torneos jugados',
-              labelText: 'Torneos jugados',
-              maxLines: 3,
+            TextListWidget(
+              textList: _tournamentsPlayed,
+              title: 'Registro torneos disputados',
+              hintText: 'Escribe torneo disputado',
+              labelText: 'Escribe torneo disputado',
+              buttonText: 'Agregar torneo disputado',
+              onChanged: (value) => _tournamentsPlayed = value,
             ),
             _button(isCreate, context, ref, colorScheme),
           ],
@@ -234,7 +235,7 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
                   injuryRecord: _injuryRecord,
                   statistics: _statistics,
                   informaScout: _informaScoutController.text,
-                  tournamentsPlayed: _tournamentsPlayedController.text,
+                  tournamentsPlayed: _tournamentsPlayed,
                 ),
               );
           Navigator.pop(context);
@@ -253,7 +254,7 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
           athlete!.injuryRecord = _injuryRecord;
           athlete!.statistics = _statistics;
           athlete!.informaScout = _informaScoutController.text;
-          athlete!.tournamentsPlayed = _tournamentsPlayedController.text;
+          athlete!.tournamentsPlayed = _tournamentsPlayed;
           ref.read(athleteProvider.notifier).createAndUpdateAthlete(athlete!);
           Navigator.pop(context);
         }

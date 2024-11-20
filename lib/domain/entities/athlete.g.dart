@@ -78,7 +78,7 @@ const AthleteSchema = CollectionSchema(
     r'tournamentsPlayed': PropertySchema(
       id: 11,
       name: r'tournamentsPlayed',
-      type: IsarType.string,
+      type: IsarType.stringList,
     ),
     r'trajectory': PropertySchema(
       id: 12,
@@ -146,6 +146,12 @@ int _athleteEstimateSize(
       StatisticsSchema.estimateSize(
           object.statistics, allOffsets[Statistics]!, allOffsets);
   bytesCount += 3 + object.tournamentsPlayed.length * 3;
+  {
+    for (var i = 0; i < object.tournamentsPlayed.length; i++) {
+      final value = object.tournamentsPlayed[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.trajectory.length * 3;
   {
     for (var i = 0; i < object.trajectory.length; i++) {
@@ -183,7 +189,7 @@ void _athleteSerialize(
     StatisticsSchema.serialize,
     object.statistics,
   );
-  writer.writeString(offsets[11], object.tournamentsPlayed);
+  writer.writeStringList(offsets[11], object.tournamentsPlayed);
   writer.writeStringList(offsets[12], object.trajectory);
   writer.writeLong(offsets[13], object.value);
   writer.writeLong(offsets[14], object.weight);
@@ -220,7 +226,7 @@ Athlete _athleteDeserialize(
           allOffsets,
         ) ??
         Statistics(),
-    tournamentsPlayed: reader.readString(offsets[11]),
+    tournamentsPlayed: reader.readStringList(offsets[11]) ?? [],
     trajectory: reader.readStringList(offsets[12]) ?? [],
     value: reader.readLong(offsets[13]),
     weight: reader.readLong(offsets[14]),
@@ -271,7 +277,7 @@ P _athleteDeserializeProp<P>(
           ) ??
           Statistics()) as P;
     case 11:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 12:
       return (reader.readStringList(offset) ?? []) as P;
     case 13:
@@ -1672,7 +1678,7 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedEqualTo(
+      tournamentsPlayedElementEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1686,7 +1692,7 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedGreaterThan(
+      tournamentsPlayedElementGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1702,7 +1708,7 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedLessThan(
+      tournamentsPlayedElementLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1718,7 +1724,7 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedBetween(
+      tournamentsPlayedElementBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1738,7 +1744,7 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedStartsWith(
+      tournamentsPlayedElementStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1752,7 +1758,7 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedEndsWith(
+      tournamentsPlayedElementEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1766,7 +1772,8 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedContains(String value, {bool caseSensitive = true}) {
+      tournamentsPlayedElementContains(String value,
+          {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
         property: r'tournamentsPlayed',
@@ -1777,7 +1784,8 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedMatches(String pattern, {bool caseSensitive = true}) {
+      tournamentsPlayedElementMatches(String pattern,
+          {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
         property: r'tournamentsPlayed',
@@ -1788,7 +1796,7 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedIsEmpty() {
+      tournamentsPlayedElementIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'tournamentsPlayed',
@@ -1798,12 +1806,101 @@ extension AthleteQueryFilter
   }
 
   QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
-      tournamentsPlayedIsNotEmpty() {
+      tournamentsPlayedElementIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'tournamentsPlayed',
         value: '',
       ));
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      tournamentsPlayedLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tournamentsPlayed',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      tournamentsPlayedIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tournamentsPlayed',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      tournamentsPlayedIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tournamentsPlayed',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      tournamentsPlayedLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tournamentsPlayed',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      tournamentsPlayedLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tournamentsPlayed',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      tournamentsPlayedLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tournamentsPlayed',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
     });
   }
 
@@ -2241,18 +2338,6 @@ extension AthleteQuerySortBy on QueryBuilder<Athlete, Athlete, QSortBy> {
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterSortBy> sortByTournamentsPlayed() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'tournamentsPlayed', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterSortBy> sortByTournamentsPlayedDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'tournamentsPlayed', Sort.desc);
-    });
-  }
-
   QueryBuilder<Athlete, Athlete, QAfterSortBy> sortByValue() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'value', Sort.asc);
@@ -2376,18 +2461,6 @@ extension AthleteQuerySortThenBy
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterSortBy> thenByTournamentsPlayed() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'tournamentsPlayed', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterSortBy> thenByTournamentsPlayedDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'tournamentsPlayed', Sort.desc);
-    });
-  }
-
   QueryBuilder<Athlete, Athlete, QAfterSortBy> thenByValue() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'value', Sort.asc);
@@ -2473,11 +2546,9 @@ extension AthleteQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QDistinct> distinctByTournamentsPlayed(
-      {bool caseSensitive = true}) {
+  QueryBuilder<Athlete, Athlete, QDistinct> distinctByTournamentsPlayed() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'tournamentsPlayed',
-          caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'tournamentsPlayed');
     });
   }
 
@@ -2574,7 +2645,8 @@ extension AthleteQueryProperty
     });
   }
 
-  QueryBuilder<Athlete, String, QQueryOperations> tournamentsPlayedProperty() {
+  QueryBuilder<Athlete, List<String>, QQueryOperations>
+      tournamentsPlayedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'tournamentsPlayed');
     });

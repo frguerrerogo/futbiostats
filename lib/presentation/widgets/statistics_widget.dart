@@ -9,34 +9,33 @@ class StatisticsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
+    return Card(
+      color: colorScheme.primaryContainer,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: colorScheme.onPrimaryContainer,
-          width: 1,
-        ),
       ),
-      padding: const EdgeInsets.all(5),
-      margin: const EdgeInsets.fromLTRB(10, 5, 10, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildStatRow('PJ:', stats.matchesPlayed.toString()),
-          _buildStatRow('Min:', stats.minutesPlayed.toString()),
-          _buildStatRow('Gol:', stats.goals.toString()),
-          _buildStatRow('Asist:', stats.assists.toString()),
-          _buildStatRow('Min *(G/A):', stats.minutesPerGoalAssist.toString()),
-          _buildStatRow('Remates a portería:', stats.shotsOnTarget.toString()),
-          _buildStatRow('Pases:', stats.passes.toString()),
-          _buildStatRow('% Pases:', '${stats.passAccuracy}%'),
-          _buildStatRow('Duelos:', stats.duels.toString()),
-          _buildStatRow('% Duelos:', '${stats.duelsWonPercentage}%'),
-          _buildStatRow('Faltas Com.:', stats.foulsCommitted.toString()),
-          _buildStatRow('Faltas Rec.:', stats.foulsReceived.toString()),
-          _buildStatRow('% Regates:', '${stats.dribbleSuccessPercentage}%'),
-          _buildCardRow(stats.yellowCards, stats.redCards),
-        ],
+      elevation: 5,
+      child: Padding(
+        padding: const EdgeInsets.all(15.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStatRow('PJ:', stats.matchesPlayed.toString()),
+            _buildStatRow('Min:', stats.minutesPlayed.toString()),
+            _buildStatRow('Gol:', stats.goals.toString()),
+            _buildStatRow('Asist:', stats.assists.toString()),
+            _buildStatRow('Min *(G/A):', stats.minutesPerGoalAssist.toString()),
+            _buildStatRow('Remates a portería:', stats.shotsOnTarget.toString()),
+            _buildStatRow('Pases:', stats.passes.toString()),
+            _buildStatRow('% Pases:', '${stats.passAccuracy}%'),
+            _buildStatRow('Duelos:', stats.duels.toString()),
+            _buildStatRow('% Duelos:', '${stats.duelsWonPercentage}%'),
+            _buildStatRow('Faltas Com.:', stats.foulsCommitted.toString()),
+            _buildStatRow('Faltas Rec.:', stats.foulsReceived.toString()),
+            _buildStatRow('% Regates:', '${stats.dribbleSuccessPercentage}%'),
+            _buildCardRow(stats.yellowCards, stats.redCards),
+          ],
+        ),
       ),
     );
   }
@@ -47,8 +46,8 @@ class StatisticsWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(value),
+          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(value, style: const TextStyle(fontSize: 16)),
         ],
       ),
     );
