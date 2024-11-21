@@ -22,12 +22,12 @@ class IconButtonCustom extends StatelessWidget {
         height: 25,
         margin: const EdgeInsets.symmetric(horizontal: 15),
         decoration: BoxDecoration(
-          color: colorScheme.primaryContainer,
+          color: colorScheme.primary,
           shape: BoxShape.circle,
         ),
         child: Icon(
           icon,
-          color: colorScheme.onPrimaryContainer,
+          color: colorScheme.primaryContainer,
           size: 18,
         ),
       ),

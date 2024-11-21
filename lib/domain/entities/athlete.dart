@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:isar/isar.dart';
 part 'athlete.g.dart';
 
@@ -12,7 +14,7 @@ class Athlete {
   Id? isarId;
 
   late String name;
-  late String image;
+  late List<int> imageData;
   late DateTime birthdate;
   late String nationality;
   late double height;
@@ -30,7 +32,7 @@ class Athlete {
 
   Athlete({
     required this.name,
-    required this.image,
+    required this.imageData,
     required this.birthdate,
     required this.nationality,
     required this.height,

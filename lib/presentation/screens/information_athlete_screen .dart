@@ -1,10 +1,14 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:futbiostats/config/constants/assets/icon.dart';
 import 'package:futbiostats/domain/entities/athlete.dart';
+import 'package:futbiostats/presentation/utils/utils.dart';
 import 'package:futbiostats/presentation/widgets/skills_rating.dart';
 import 'package:futbiostats/presentation/widgets/statistics_widget.dart';
+
 import 'package:intl/intl.dart';
 
 class InformationAthleteScreen extends ConsumerWidget {
@@ -50,21 +54,16 @@ class InformationAthleteScreen extends ConsumerWidget {
       return age;
     }
 
-    // Método para formatear números con el símbolo de euros
-    String formatCurrency(int value) {
-      final format = NumberFormat.currency(
-        locale: 'es_ES', // Configuración regional para el formato europeo
-        symbol: '€', // Símbolo de euros
-        decimalDigits: 0, // Sin decimales
-      );
-      return format.format(value);
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          athlete.name,
-          style: TextStyle(color: colorScheme.onPrimary),
+        title: Center(
+          child: Text(
+            athlete.name,
+            maxLines: 2,
+            style: TextStyle(
+              color: colorScheme.onPrimary,
+            ),
+          ),
         ),
         centerTitle: true,
         leading: IconButton(
@@ -87,31 +86,11 @@ class InformationAthleteScreen extends ConsumerWidget {
             children: [
               // String image;
               // Image and basic info
-              // Center(
-              //   child: Column(
-              //     children: [
-              //       CircleAvatar(
-              //         radius: 60,
-              //         backgroundImage: NetworkImage(athlete.image),
-              //       ),
-              //       const SizedBox(height: 10),
-              //       Text(
-              //         athlete.name,
-              //         style: Theme.of(context).textTheme.headline5?.copyWith(
-              //               fontWeight: FontWeight.bold,
-              //             ),
-              //       ),
-              //       Text(
-              //         athlete.nationality,
-              //         style: TextStyle(
-              //           color: Colors.grey.shade600,
-              //           fontStyle: FontStyle.italic,
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-              // const SizedBox(height: 20),
+              athlete.imageData.isEmpty
+                  ? const Text('No se ha cargado ninguna imagen.')
+                  : Image.memory(Uint8List.fromList(athlete.imageData)),
+
+              const SizedBox(height: 10),
               //name
               // Player stats
               Card(
@@ -135,7 +114,7 @@ class InformationAthleteScreen extends ConsumerWidget {
                       //weight;
                       _infoRow("Peso:", "${athlete.weight} kg"),
                       //value;
-                      _infoRow("Valor:", formatCurrency(athlete.value)),
+                      _infoRow("Valor:", Utils.formatCurrency(athlete.value)),
                     ],
                   ),
                 ),

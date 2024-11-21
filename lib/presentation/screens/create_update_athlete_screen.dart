@@ -1,15 +1,20 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:futbiostats/domain/entities/athlete.dart';
 import 'package:futbiostats/presentation/providers/athlete_provider.dart';
+import 'package:futbiostats/presentation/utils/utils.dart';
 import 'package:futbiostats/presentation/widgets/custom_text_field.dart';
 import 'package:futbiostats/presentation/widgets/date_picker_field.dart';
 import 'package:futbiostats/presentation/widgets/icon_button_custom.dart';
 import 'package:futbiostats/presentation/widgets/skilled_foot_selector.dart';
 import 'package:futbiostats/presentation/widgets/skills_rating.dart';
 import 'package:futbiostats/presentation/widgets/statistics_form.dart';
-import 'package:futbiostats/presentation/widgets/statistics_widget.dart';
 import 'package:futbiostats/presentation/widgets/text_list_widget.dart';
+
+final imageProvider = StateProvider.autoDispose<Uint8List>((ref) => Uint8List.fromList([]));
 
 class CreateUpdateAthleteScreen extends ConsumerWidget {
   static const name = 'create-update-athlete-screen';
@@ -19,8 +24,9 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
     super.key,
     this.athlete,
   });
-
+  static bool isFirstTime = true;
   final TextEditingController _nameController = TextEditingController();
+  Uint8List _imageData = Uint8List.fromList([]);
   late DateTime _birthdate = DateTime.now();
   final TextEditingController _nationalityController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
@@ -62,8 +68,8 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
     final bool isCreate = athlete == null;
 
     if (!isCreate) {
-      // String image;
       _nameController.text = athlete!.name;
+      _imageData = Uint8List.fromList(athlete!.imageData);
       _birthdate = athlete!.birthdate;
       _nationalityController.text = athlete!.nationality;
       _heightController.text = athlete!.height.toString();
@@ -77,6 +83,8 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
       _statistics = athlete!.statistics;
       _informaScoutController.text = athlete!.informaScout;
       _tournamentsPlayed = athlete!.tournamentsPlayed;
+    } else {
+      _imageData = ref.watch(imageProvider);
     }
 
     return Scaffold(
@@ -94,6 +102,7 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
             IconButtonCustom(
                 onTap: () {
                   ref.read(athleteProvider.notifier).deleteAthlete(athlete!.isarId!);
+                  Navigator.of(context).pop();
                 },
                 icon: Icons.delete_forever,
                 background: true),
@@ -104,6 +113,19 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // String image;
+            _imageData.isEmpty
+                ? const Text('No se ha cargado ninguna imagen.')
+                : Image.memory(_imageData), // Mostrar la imagen desde los bytes
+            ElevatedButton(
+              onPressed: () async {
+                Uint8List? imageByte = await Utils.pickImage();
+                if (imageByte != null) {
+                  _imageData = imageByte;
+                  ref.read(imageProvider.notifier).state = _imageData;
+                }
+              },
+              child: const Text('Seleccionar de la Galería'),
+            ),
             //name
             CustomTextField(
               controller: _nameController,
@@ -125,12 +147,14 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
             ),
             //height;
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: _heightController,
               hintText: 'Altura (m)',
               labelText: 'Altura',
             ),
             //weight;
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: _weightController,
               hintText: 'Peso (Kg)',
               labelText: 'Peso',
@@ -155,6 +179,7 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
             ),
             //value;
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: _valueController,
               hintText: 'Valor (€)',
               labelText: 'Valor',
@@ -222,7 +247,7 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
           ref.read(athleteProvider.notifier).createAndUpdateAthlete(
                 Athlete(
                   name: _nameController.text,
-                  image: '',
+                  imageData: _imageData!.toList(),
                   birthdate: _birthdate,
                   nationality: _nationalityController.text,
                   height: _heightController.text.isNotEmpty ? double.parse(_heightController.text) : 0,
@@ -241,7 +266,7 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
           Navigator.pop(context);
         } else {
           athlete!.name = _nameController.text;
-          athlete!.image = '';
+          athlete!.imageData = _imageData!.toList();
           athlete!.birthdate = _birthdate;
           athlete!.nationality = _nationalityController.text;
           athlete!.height = _heightController.text.isNotEmpty ? double.parse(_heightController.text) : 0;
@@ -271,4 +296,8 @@ class CreateUpdateAthleteScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<List<Uint8List>> _readImagesFromDatabase() async {
+  throw UnimplementedError();
 }

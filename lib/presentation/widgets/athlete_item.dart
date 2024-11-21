@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:futbiostats/domain/entities/athlete.dart';
 import 'package:futbiostats/presentation/screens/create_update_athlete_screen.dart';
 import 'package:futbiostats/presentation/screens/information_athlete_screen%20.dart';
+import 'package:futbiostats/presentation/utils/utils.dart';
 import 'package:futbiostats/presentation/widgets/icon_button_custom.dart';
 import 'package:go_router/go_router.dart';
 
@@ -37,7 +41,7 @@ class AthleteItem extends StatelessWidget {
               children: [
                 Flexible(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Text(
@@ -49,31 +53,47 @@ class AthleteItem extends StatelessWidget {
                             .titleMedium!
                             .copyWith(fontWeight: FontWeight.bold, color: colorScheme.onPrimaryContainer),
                       ),
-                      Text(
-                        athlete.nationality,
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.justify,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium!
-                            .copyWith(fontWeight: FontWeight.normal, color: colorScheme.onPrimaryContainer),
+                      athlete.imageData.isEmpty
+                          ? const Text('No se ha cargado ninguna imagen.')
+                          : Padding(
+                              padding: const EdgeInsets.only(top: 10.0),
+                              child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.memory(Uint8List.fromList(athlete.imageData))),
+                            ),
+                      const SizedBox(height: 10),
+                      Stack(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButtonCustom(
+                                  onTap: () {
+                                    GoRouter.of(context).goNamed(CreateUpdateAthleteScreen.name, extra: athlete);
+                                  },
+                                  icon: Icons.edit,
+                                  background: false),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                Utils.formatCurrency(athlete.value),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium!
+                                    .copyWith(fontWeight: FontWeight.bold, color: colorScheme.onPrimaryContainer),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButtonCustom(
-                    onTap: () {
-                      GoRouter.of(context).goNamed(CreateUpdateAthleteScreen.name, extra: athlete);
-                    },
-                    icon: Icons.edit,
-                    background: false),
               ],
             ),
           ],

@@ -19,7 +19,7 @@ class AthletesMainScreen extends StatelessWidget {
       appBar: _appBar(context, colorScheme),
       drawer: const DrawerCustom(),
       body: const Padding(
-        padding: EdgeInsets.only(top: 10.0, bottom: 50),
+        padding: EdgeInsets.only(top: 10.0),
         child: ListAthletesView(),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,

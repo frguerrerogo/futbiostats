@@ -145,78 +145,91 @@ class _StatisticsFormState extends State<StatisticsForm> {
             const SizedBox(height: 8),
             // Campo de Partidos Jugados
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: matchesController,
               labelText: 'Partidos Jugados (PJ)',
               hintText: 'Partidos Jugados (PJ)',
             ),
             // Campo de Minutos
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: minutesController,
               labelText: 'Minutos Jugados (Min)',
               hintText: 'Minutos Jugados (Min)',
             ),
             // Campo de Goles
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: goalsController,
               labelText: 'Goles (Gol)',
               hintText: 'Goles (Gol)',
             ),
             // Campo de Asistencias
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: assistsController,
               labelText: 'Asistencias (Asist)',
               hintText: 'Asistencias (Asist)',
             ),
             // Campo de Remates
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: shotsController,
               labelText: 'Remates a Portería',
               hintText: 'Remates a Portería',
             ),
             // Campo de Pases
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: passesController,
               labelText: 'Pases',
               hintText: 'Pases',
             ),
             // Campo de Precisión de Pases
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: passAccuracyController,
               labelText: 'Precisión de Pases (%)',
               hintText: 'Precisión de Pases (%)',
             ),
             // Campo de Duelos
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: duelsController,
               labelText: 'Duelos',
               hintText: 'Duelos',
             ),
             // Campo de Duelos Ganados
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: duelsWonController,
               labelText: 'Porcentaje Duelos Ganados (%)',
               hintText: 'Porcentaje Duelos Ganados (%)',
             ),
             // Campo de Faltas Cometidas
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: foulsCommittedController,
               labelText: 'Faltas Cometidas',
               hintText: 'Faltas Cometidas',
             ),
             // Campo de Faltas Recibidas
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: foulsReceivedController,
               labelText: 'Faltas Recibidas',
               hintText: 'Faltas Recibidas',
             ),
             // Campo de Regates
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: dribblesController,
               labelText: 'Porcentaje de Regates (%)',
               hintText: 'Porcentaje de Regates (%)',
             ),
             // Campo de Tarjetas Amarillas
             CustomTextField(
+              keyboardType: TextInputType.number,
               controller: yellowCardsController,
               labelText: 'Tarjetas Amarillas',
               hintText: 'Tarjetas Amarillas',

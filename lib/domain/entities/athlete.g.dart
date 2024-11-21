@@ -27,10 +27,10 @@ const AthleteSchema = CollectionSchema(
       name: r'height',
       type: IsarType.double,
     ),
-    r'image': PropertySchema(
+    r'imageData': PropertySchema(
       id: 2,
-      name: r'image',
-      type: IsarType.string,
+      name: r'imageData',
+      type: IsarType.longList,
     ),
     r'informaScout': PropertySchema(
       id: 3,
@@ -116,7 +116,7 @@ int _athleteEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  bytesCount += 3 + object.image.length * 3;
+  bytesCount += 3 + object.imageData.length * 8;
   bytesCount += 3 + object.informaScout.length * 3;
   bytesCount += 3 + object.injuryRecord.length * 3;
   {
@@ -170,7 +170,7 @@ void _athleteSerialize(
 ) {
   writer.writeDateTime(offsets[0], object.birthdate);
   writer.writeDouble(offsets[1], object.height);
-  writer.writeString(offsets[2], object.image);
+  writer.writeLongList(offsets[2], object.imageData);
   writer.writeString(offsets[3], object.informaScout);
   writer.writeStringList(offsets[4], object.injuryRecord);
   writer.writeString(offsets[5], object.name);
@@ -204,7 +204,7 @@ Athlete _athleteDeserialize(
   final object = Athlete(
     birthdate: reader.readDateTime(offsets[0]),
     height: reader.readDouble(offsets[1]),
-    image: reader.readString(offsets[2]),
+    imageData: reader.readLongList(offsets[2]) ?? [],
     informaScout: reader.readString(offsets[3]),
     injuryRecord: reader.readStringList(offsets[4]) ?? [],
     name: reader.readString(offsets[5]),
@@ -247,7 +247,7 @@ P _athleteDeserializeProp<P>(
     case 1:
       return (reader.readDouble(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readLongList(offset) ?? []) as P;
     case 3:
       return (reader.readString(offset)) as P;
     case 4:
@@ -505,133 +505,143 @@ extension AthleteQueryFilter
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageDataElementEqualTo(
+      int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'image',
+        property: r'imageData',
         value: value,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageGreaterThan(
-    String value, {
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      imageDataElementGreaterThan(
+    int value, {
     bool include = false,
-    bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'image',
+        property: r'imageData',
         value: value,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageLessThan(
-    String value, {
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      imageDataElementLessThan(
+    int value, {
     bool include = false,
-    bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'image',
+        property: r'imageData',
         value: value,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageBetween(
-    String lower,
-    String upper, {
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageDataElementBetween(
+    int lower,
+    int upper, {
     bool includeLower = true,
     bool includeUpper = true,
-    bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'image',
+        property: r'imageData',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageStartsWith(
-    String value, {
-    bool caseSensitive = true,
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageDataLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imageData',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageDataIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imageData',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageDataIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imageData',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageDataLengthLessThan(
+    int length, {
+    bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'image',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.listLength(
+        r'imageData',
+        0,
+        true,
+        length,
+        include,
+      );
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageEndsWith(
-    String value, {
-    bool caseSensitive = true,
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition>
+      imageDataLengthGreaterThan(
+    int length, {
+    bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'image',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.listLength(
+        r'imageData',
+        length,
+        include,
+        999999,
+        true,
+      );
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageContains(
-      String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageDataLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'image',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'image',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'image',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterFilterCondition> imageIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'image',
-        value: '',
-      ));
+      return query.listLength(
+        r'imageData',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
     });
   }
 
@@ -2278,18 +2288,6 @@ extension AthleteQuerySortBy on QueryBuilder<Athlete, Athlete, QSortBy> {
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QAfterSortBy> sortByImage() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'image', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterSortBy> sortByImageDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'image', Sort.desc);
-    });
-  }
-
   QueryBuilder<Athlete, Athlete, QAfterSortBy> sortByInformaScout() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'informaScout', Sort.asc);
@@ -2386,18 +2384,6 @@ extension AthleteQuerySortThenBy
   QueryBuilder<Athlete, Athlete, QAfterSortBy> thenByHeightDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'height', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterSortBy> thenByImage() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'image', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Athlete, Athlete, QAfterSortBy> thenByImageDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'image', Sort.desc);
     });
   }
 
@@ -2500,10 +2486,9 @@ extension AthleteQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Athlete, Athlete, QDistinct> distinctByImage(
-      {bool caseSensitive = true}) {
+  QueryBuilder<Athlete, Athlete, QDistinct> distinctByImageData() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'image', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'imageData');
     });
   }
 
@@ -2591,9 +2576,9 @@ extension AthleteQueryProperty
     });
   }
 
-  QueryBuilder<Athlete, String, QQueryOperations> imageProperty() {
+  QueryBuilder<Athlete, List<int>, QQueryOperations> imageDataProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'image');
+      return query.addPropertyName(r'imageData');
     });
   }
 

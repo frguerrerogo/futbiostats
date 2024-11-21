@@ -5,12 +5,14 @@ class CustomTextField extends StatelessWidget {
   final String hintText;
   final String labelText;
   final int maxLines;
+  final TextInputType keyboardType;
   const CustomTextField({
     super.key,
     required this.controller,
     required this.hintText,
     required this.labelText,
     this.maxLines = 1,
+    this.keyboardType = TextInputType.text,
   });
 
   @override
@@ -20,6 +22,7 @@ class CustomTextField extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 10),
       child: TextField(
+        keyboardType: keyboardType,
         controller: controller,
         decoration: InputDecoration(
           hintText: hintText,
